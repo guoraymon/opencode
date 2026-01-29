@@ -36,6 +36,7 @@ export namespace Filesystem {
     return !relative(parent, child).startsWith("..")
   }
 
+  // LEARN: 向上递归收集所有文件
   export async function findUp(target: string, start: string, stop?: string) {
     let current = start
     const result = []

@@ -481,11 +481,13 @@ export namespace MessageV2 {
         }
         result.push(userMessage)
         for (const part of msg.parts) {
+          // NOTE: 普通文本
           if (part.type === "text" && !part.ignored)
             userMessage.parts.push({
               type: "text",
               text: part.text,
             })
+          // NOTE: 附件
           // text/plain and directory files are converted into text parts, ignore them
           if (part.type === "file" && part.mime !== "text/plain" && part.mime !== "application/x-directory")
             userMessage.parts.push({
@@ -495,12 +497,14 @@ export namespace MessageV2 {
               filename: part.filename,
             })
 
+          // NOTE: 上下文压缩
           if (part.type === "compaction") {
             userMessage.parts.push({
               type: "text",
               text: "What did we do so far?",
             })
           }
+          // NOTE: 子任务
           if (part.type === "subtask") {
             userMessage.parts.push({
               type: "text",

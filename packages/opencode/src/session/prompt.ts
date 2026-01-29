@@ -257,7 +257,9 @@ export namespace SessionPrompt {
   }
 
   export const loop = fn(Identifier.schema("session"), async (sessionID) => {
+    // NOTE: 启动会话。abort=isNewSession
     const abort = start(sessionID)
+    // NOTE: 新会话会返回abort，不是新会话就返回 Promise，加入队列等待
     if (!abort) {
       return new Promise<MessageV2.WithParts>((resolve, reject) => {
         const callbacks = state()[sessionID].callbacks
@@ -265,6 +267,7 @@ export namespace SessionPrompt {
       })
     }
 
+    // NOTE: 函数结束时调用 cancel
     using _ = defer(() => cancel(sessionID))
 
     let step = 0
@@ -281,11 +284,13 @@ export namespace SessionPrompt {
       let tasks: (MessageV2.CompactionPart | MessageV2.SubtaskPart)[] = []
       for (let i = msgs.length - 1; i >= 0; i--) {
         const msg = msgs[i]
+        // NOTE: 倒序遍历，所以这里是找到最后的用户、助手、已完成助手消息
         if (!lastUser && msg.info.role === "user") lastUser = msg.info as MessageV2.User
         if (!lastAssistant && msg.info.role === "assistant") lastAssistant = msg.info as MessageV2.Assistant
         if (!lastFinished && msg.info.role === "assistant" && msg.info.finish)
           lastFinished = msg.info as MessageV2.Assistant
         if (lastUser && lastFinished) break
+        // NOTE: 收集未完成的任务
         const task = msg.parts.filter((part) => part.type === "compaction" || part.type === "subtask")
         if (task && !lastFinished) {
           tasks.push(...task)

@@ -16,14 +16,20 @@ const FILES = [
   "CONTEXT.md", // deprecated
 ]
 
+// LEARN: 全局配置文件
 function globalFiles() {
+  // LEARN: 全局配置目录的 AGENTS.MD
   const files = [path.join(Global.Path.config, "AGENTS.md")]
+  // LEARN: Home 目录的 CLAUDE.md
   if (!Flag.OPENCODE_DISABLE_CLAUDE_CODE_PROMPT) {
     files.push(path.join(os.homedir(), ".claude", "CLAUDE.md"))
   }
+  // LEARN: opencode 配置目录的 AGENTS.md
   if (Flag.OPENCODE_CONFIG_DIR) {
     files.push(path.join(Flag.OPENCODE_CONFIG_DIR, "AGENTS.md"))
   }
+  // console.log("[DEBUG] globalFiles:", files)
+  // ["/home/raymon/.config/opencode/AGENTS.md", "/home/raymon/.claude/CLAUDE.md"]
   return files
 }
 
@@ -45,7 +51,9 @@ export namespace InstructionPrompt {
     const config = await Config.get()
     const paths = new Set<string>()
 
+    // NOTE: 项目配置文件
     if (!Flag.OPENCODE_DISABLE_PROJECT_CONFIG) {
+      // LEARN: 向上递归查找到工作目录，命中即退出（找到 AGENTS.md 就不会再找 CLAUDE.md，但是AGENTS.md 可能会有多个）
       for (const file of FILES) {
         const matches = await Filesystem.findUp(file, Instance.directory, Instance.worktree)
         if (matches.length > 0) {
@@ -55,6 +63,7 @@ export namespace InstructionPrompt {
       }
     }
 
+    // NOTE: 全局配置文件
     for (const file of globalFiles()) {
       if (await Bun.file(file).exists()) {
         paths.add(path.resolve(file))
@@ -62,6 +71,7 @@ export namespace InstructionPrompt {
       }
     }
 
+    // NOTE: 用户配置文件
     if (config.instructions) {
       for (let instruction of config.instructions) {
         if (instruction.startsWith("https://") || instruction.startsWith("http://")) continue
@@ -87,6 +97,8 @@ export namespace InstructionPrompt {
   export async function system() {
     const config = await Config.get()
     const paths = await systemPaths()
+    // Set(2) {"/home/raymon/workspace/oss/opencode/packages/opencode/AGENTS.md"," "/home/raymon/workspace/oss/opencode/AGENTS.md"}
+    // console.log(paths);
 
     const files = Array.from(paths).map(async (p) => {
       const content = await Bun.file(p)
@@ -95,6 +107,7 @@ export namespace InstructionPrompt {
       return content ? "Instructions from: " + p + "\n" + content : ""
     })
 
+    // NOTE: 用户配置的远程指令文件
     const urls: string[] = []
     if (config.instructions) {
       for (const instruction of config.instructions) {
