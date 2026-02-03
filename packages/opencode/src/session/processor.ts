@@ -49,10 +49,12 @@ export namespace SessionProcessor {
         while (true) {
           try {
             let currentText: MessageV2.TextPart | undefined
+            // NOTE: 支持多段推理/并行推理
             let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
             const stream = await LLM.stream(streamInput)
 
             for await (const value of stream.fullStream) {
+              // NOTE: 中止信号
               input.abort.throwIfAborted()
               switch (value.type) {
                 case "start":
@@ -80,6 +82,7 @@ export namespace SessionProcessor {
                   if (value.id in reasoningMap) {
                     const part = reasoningMap[value.id]
                     part.text += value.text
+                    // NOTE: 模型厂商非标数据
                     if (value.providerMetadata) part.metadata = value.providerMetadata
                     if (part.text) await Session.updatePart({ part, delta: value.text })
                   }
@@ -100,6 +103,7 @@ export namespace SessionProcessor {
                   }
                   break
 
+                // NOTE: 工具调用准备
                 case "tool-input-start":
                   const part = await Session.updatePart({
                     id: toolcalls[value.id]?.id ?? Identifier.ascending("part"),
@@ -123,6 +127,7 @@ export namespace SessionProcessor {
                 case "tool-input-end":
                   break
 
+                // NOTE: 工具调用开始
                 case "tool-call": {
                   const match = toolcalls[value.toolCallId]
                   if (match) {
@@ -169,6 +174,8 @@ export namespace SessionProcessor {
                   }
                   break
                 }
+
+                // NOTE: 工具调用完成
                 case "tool-result": {
                   const match = toolcalls[value.toolCallId]
                   if (match && match.state.status === "running") {

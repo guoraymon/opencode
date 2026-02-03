@@ -194,6 +194,7 @@ export namespace LLM {
         })
       },
       async experimental_repairToolCall(failed) {
+        // NOTE: 纠正模型可能会写错工具名大小写
         const lower = failed.toolCall.toolName.toLowerCase()
         if (lower !== failed.toolCall.toolName && tools[lower]) {
           l.info("repairing tool call", {
@@ -205,6 +206,7 @@ export namespace LLM {
             toolName: lower,
           }
         }
+        // NOTE: 纠错失败直接降级
         return {
           ...failed.toolCall,
           input: JSON.stringify({

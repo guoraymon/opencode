@@ -580,6 +580,7 @@ export namespace SessionPrompt {
 
       const sessionMessages = clone(msgs)
 
+      // LEARN: 解决注意力漂移(Attention Drift)问题
       // Ephemerally wrap queued user messages with a reminder to stay on track
       if (step > 1 && lastFinished) {
         for (const msg of sessionMessages) {
